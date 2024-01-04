@@ -1,11 +1,11 @@
--- Table of departmental info
+-- Table of departments
 CREATE TABLE department (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(30) NOT NULL
 );
 
--- Table of staff role info
-CREATE TABLE role (
+-- Table of staff titles (occupation = ROLE)
+CREATE TABLE occupation (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(30) NOT NULL,
     salary DECIMAL NOT NULL,
@@ -13,13 +13,13 @@ CREATE TABLE role (
     FOREIGN KEY (department_id) REFERENCES department(id)
 );
 
--- Table of employee info
-CREATE TABLE employee (
+-- Table of staff in employ (personnel = EMPLOYEES)
+CREATE TABLE personnel (
     id INT AUTO_INCREMENT PRIMARY KEY,
     first_name VARCHAR(30) NOT NULL,
     last_name VARCHAR(30) NOT NULL,
-    role_id INT,
+    occupation_id INT,
     manager_id INT,
-    FOREIGN KEY (role_id) REFERENCES role(id),
-    FOREIGN KEY (manager_id) REFERENCES employee(id)
+    FOREIGN KEY (occupation_id) REFERENCES occupation(id),
+    FOREIGN KEY (manager_id) REFERENCES personnel(id)
 );

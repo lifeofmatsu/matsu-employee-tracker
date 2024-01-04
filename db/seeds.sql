@@ -8,7 +8,7 @@ INSERT INTO department (name) VALUES
     ('Marketing & Sales');
 
 -- Sample roles referenced to department
-INSERT INTO role (title, salary, department_id) VALUES
+INSERT INTO occupation (title, salary, department_id) VALUES
     ('Chief Technology Officer', 375000, 1),
     ('Engineering Director', 205000, 1),
     ('Engineering Lead', 182500, 1),
@@ -39,7 +39,7 @@ INSERT INTO role (title, salary, department_id) VALUES
     ('Social Media Coordinator', 37500, 6);
 
 -- Sample employees referenced to manager
-INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES
+INSERT INTO personnel (first_name, last_name, occupation_id, manager_id) VALUES
     ('Albert', 'Einstein', 1, NULL),
     ('Thomas', 'Edison', 2, 1),
     ('Isaac', 'Newton', 3, 2),
