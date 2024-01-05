@@ -18,13 +18,13 @@ INSERT INTO occupation (title, salary, department_id) VALUES
     ('Chief Financial Officer', 330000, 3),
     ('Finance Director', 135000, 3),
     ('Accounting Lead', 80000, 3),
-    ('Financial Analyst' 75000, 3),
+    ('Financial Analyst', 75000, 3),
     ('Accounting Clerk', 45000, 3),
     ('Chief Human Resources Manager', 126500, 4),
     ('HR Director', 93000, 4),
     ('HR Manager', 75000, 4),
     ('HR Analyst', 62000, 4),
-    ('Payroll Assistant' 45000, 3),
+    ('Payroll Assistant', 45000, 4),
     ('HR Associate', 37500, 4),
     ('Chief Legal Officer', 121400, 5),
     ('Lawyer - Corporate', 98000, 5),
@@ -68,8 +68,3 @@ INSERT INTO personnel (first_name, last_name, occupation_id, manager_id) VALUES
     ('Alexander', 'Hamilton', 26, 25),
     ('Amadeus', 'Mozart', 27, 25),
     ('Immanuel', 'Kant', 28, 25);
-
-
-
-
-

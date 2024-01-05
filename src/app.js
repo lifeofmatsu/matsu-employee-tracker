@@ -12,18 +12,18 @@ const userPrompt = () => {
                 'Get List of Departments',
                 'Get List of Occupations',
                 'Get List of Personnel',
-                'Get Personnel by Department', //bonus
-                'Get Personnel by Manager', //bonus
-                'Generate Departmental Budget Report', //bonus
+                'Get Personnel by Department', // bonus
+                'Get Direct Reports by Manager', // bonus
+                'Generate Departmental Budget Report', // bonus
                 'Add New Department',
                 'Add New Occupation',
                 'Add New Staff Personnel',
-                'Edit Staff Department', //extra
+                'Edit Staff Department', // extra
                 'Edit Staff Occupation',
-                'Edit Reporting Manager', //bonus
-                'Remove Department', //bonus
-                'Remove Occupation', //bonus
-                'Remove Staff Personnel', //bonus
+                'Edit Reporting Manager', // bonus
+                'Remove Department', // bonus
+                'Remove Occupation', // bonus
+                'Remove Staff Personnel', // bonus
                 'Exit'
             ]
         }
@@ -35,7 +35,10 @@ const getDepts = async () => {
     try {
         const query = `SELECT * FROM department`;
         const [rows] = await db.promise().query(query);
+
+        console.log('\n');
         console.table(rows);
+        console.log('\n');
     } catch (err) {
         console.log('Error: Failed to fetch departments', err);
     }
@@ -44,60 +47,87 @@ const getDepts = async () => {
 // Gets list of occupations
 const getOccupations = async () => {
     try {
-         const query = `SELECT * FROM occupation`;
-         const [rows] = await db.promise().query(query);
-         console.table(rows);
+        const query = `
+            SELECT occupation.id, occupation.title, department.name AS department, occupation.salary
+            FROM occupation
+            JOIN department ON occupation.department_id = department.id`;
+        const [rows] = await db.promise().query(query);
+
+        console.log('\n');
+        console.table(rows);
+        console.log('\n');
     } catch (err) {
-         console.error('Error: Failed to fetch occupations', err);
+        console.error('Error: Failed to fetch occupations', err);
     }
-}
+};
 
 // Gets list of personnel
-const getPersonnel = async () => {
+const getEmployees = async () => {
     try {
-        const query = `SELECT * FROM personnel`;
-        const [rows] = await db.promise().query(query);
-        console.table(rows);
-    } catch (err) {
-        console.error('Error: Failed to fetch personnel', err);
-    }
-}
+        const query = `
+            SELECT employee.id, employee.first_name, employee.last_name, 
+                occupation.title AS occupation_title, 
+                department.name AS department, 
+                occupation.salary, 
+                CONCAT(manager.first_name, ' ', manager.last_name) AS manager_name
+            FROM employee
+            LEFT JOIN occupation ON employee.occupation_id = occupation.id
+            LEFT JOIN department ON occupation.department_id = department.id
+            LEFT JOIN employee AS manager ON employee.manager_id = manager.id`;
 
-// BONUS: Gets personnel of a department
-const getPersonnelByDept = async () => {
+        const [rows] = await db.promise().query(query);
+
+        console.log('\n');
+        console.table(rows);
+        console.log('\n');
+    } catch (err) {
+        console.error('Error: Failed to fetch employee data', err);
+    }
+};
+
+// BONUS: Gets employees of a specific department
+const getEmployeesByDept = async () => {
     try {
         // Query array of depts; user selects dept
         const [departments] = await db.promise().query('SELECT id, name FROM department');
+
+        const departmentList = departments.map(dept => ({
+            name: dept.name,
+            value: dept.id
+        }));
+
         const { departmentId } = await inquirer.prompt([
             {
                 type: 'list',
                 name: 'departmentId',
                 message: 'Select a department to list its personnel:',
-                choices: departments.map(dept => ({ name: dept.name, value: dept.id })),
+                choices: departmentList
             },
         ]);
 
         // Query personnel for selected dept
         const query = `
-            SELECT personnel.id, personnel.first_name, personnel.last_name, occupation.title, department.name AS department
-            FROM personnel
-            JOIN occupation ON personnel.occupation_id = occupation.id
+            SELECT employee.id, employee.first_name, employee.last_name, occupation.title, department.name AS department
+            FROM employee
+            JOIN occupation ON employee.occupation_id = occupation.id
             JOIN department ON occupation.department_id = department.id
             WHERE department.id = ?
         `;
-        const [personnel] = await db.promise().query(query, [departmentId]);
+        const [employees] = await db.promise().query(query, [departmentId]);
         
-        console.table(personnel);
+        console.log('\n');
+        console.table(employees);
+        console.log('\n');
     } catch (err) {
         console.error('Error: Failed to fetch employees by department:', err);
     }
 }
 
 // BONUS: Gets the direct reports of a manager
-const getPersonnelbyMgr = async () => {
+const getEmployeesByMgr = async () => {
     try {
         // Query array of managers; user selects manager
-        const [managers] = await db.promise().query('SELECT id, first_name, last_name FROM personnel WHERE manager_id IS NOT NULL');
+        const [managers] = await db.promise().query('SELECT id, first_name, last_name FROM employee WHERE manager_id IS NOT NULL');
         const { managerId } = await inquirer.prompt([
             {
                 type: 'list',
@@ -109,17 +139,19 @@ const getPersonnelbyMgr = async () => {
 
         // Query direct reports for selected manager
         const query = `
-            SELECT personnel.id, personnel.first_name, personnel.last_name, occupation.title, department.name AS department
-            FROM personnel
-            JOIN occupation ON personnel.occupation_id = occupation.id
+            SELECT employee.id, employee.first_name, employee.last_name, occupation.title, department.name AS department
+            FROM employee
+            JOIN occupation ON employee.occupation_id = occupation.id
             JOIN department ON occupation.department_id = department.id
-            WHERE personnel.manager_id = ?
+            WHERE employee.manager_id = ?
         `;
-        const [personnel] = await db.promise().query(query, [managerId]);
+        const [employees] = await db.promise().query(query, [managerId]);
 
-        console.table(personnel);
+        console.log('\n');
+        console.table(employees);
+        console.log('\n');
     } catch (err) {
-        console.error('Error: Failed to fetch personnel by manager:', err);
+        console.error('Error: Failed to fetch the direct reports of user-selected manager:', err);
     }
 }
 
@@ -129,8 +161,8 @@ const getBudgetReport = async () => {
         // Calculate total budget for each dept
         const query = `
             SELECT department.name AS Department, SUM(occupation.salary) AS TotalBudget
-            FROM personnel
-            JOIN occupation ON personnel.occupation_id = occupation.id
+            FROM employee
+            JOIN occupation ON employee.occupation_id = occupation.id
             JOIN department ON occupation.department_id = department.id
             GROUP BY department.id
         `;
@@ -141,7 +173,10 @@ const getBudgetReport = async () => {
             console.log('No budget data available.');
             return;
         }
+
+        console.log('\n');
         console.table(budgets);
+        console.log('\n');
     } catch (err) {
         console.error('Error: Failed to generate departmental budget report:', err);
     }
@@ -197,53 +232,53 @@ const addOccupation = async () => {
     }
 }
 
-// Adds new staff personnel
-const addPersonnel = async () => {
+// Adds new employees
+const addEmployee = async () => {
     try {
-        const personnel = await inquirer.prompt([
+        const employee = await inquirer.prompt([
             {
                 type: 'input',
                 name: 'firstName',
-                message: `Enter the staff's first name:`
+                message: `Enter the employee's first name:`
             },
             {
                 type: 'input',
                 name: 'lastName',
-                message: `Enter the staff's last name:`
+                message: `Enter the employee's last name:`
             },
             {
                 type: 'input',
                 name: 'occupationId',
-                message: `Enter the staff's occupation:`
+                message: `Enter the employee's occupation:`
             },
             {
                 type: 'input',
                 name: 'managerId',
-                message: `Enter the staff's reporting manager (NULL if not applicable):`
+                message: `Enter the employee's reporting manager (NULL if not applicable):`
             }
         ]);
 
         const insertQuery = `INSERT INTO employee (first_name, last_name, occupation_id, manager_id) VALUES (?, ?, ?, ?)`;
-        await db.promise().query(insertQuery, [personnel.firstName, personnel.lastName, personnel.occupationId, personnel.managerId]);
+        await db.promise().query(insertQuery, [employee.firstName, employee.lastName, employee.occupationId, employee.managerId]);
         
-        console.log('Personnel added successfully.');
+        console.log('New employee added successfully.');
     } catch (err) {
         console.error('Error: Failed to add employee', err);
     }
 }
 
-//EXTRA: Edits department for a staff member
+// EXTRA: Edits department for a staff member
 const setDept = async () => {
     try {
-        const personnel = await getPersonnel();
+        const employees = await getEmployees();
         const departments = await getDepts();
 
         const setVals = await inquirer.prompt([
             {
                 type: 'list',
-                name: 'staff',
-                message: 'Select staff member to update:',
-                choices: personnel // array of personnel
+                name: 'employee',
+                message: 'Select an employee to update:',
+                choices: employees // array of employees
             },
             {
                 type: 'list',
@@ -253,27 +288,27 @@ const setDept = async () => {
             }
         ]);
 
-        const updateQuery = `UPDATE personnel SET department_id = ? WHERE id = ?`;
-        await db.promise().query(updateQuery, [setVals.departmentId, setVals.staff]); 
+        const updateQuery = `UPDATE employee SET department_id = ? WHERE id = ?`;
+        await db.promise().query(updateQuery, [setVals.departmentId, setVals.employee]); 
         
-        console.log('Staff department updated successfully');
+        console.log(`The employee's department has been updated successfully`);
     } catch (err) {
-        console.error('Error: Failed to update staff department', err);
+        console.error(`Error: Failed to update the employee's department`, err);
     }
 }
 
-// Edits occupation for a staff member
+// Sets occupation for a staff member
 const setOccupation = async () => {
     try {
-        const personnel = await getPersonnel();
+        const employees = await getEmployees();
         const occupations = await getOccupations();
 
         const setVals = await inquirer.prompt([
             {
                 type: 'list',
-                name: 'staff',
-                message: 'Select staff member to update:',
-                choices: personnel // array of personnel
+                name: 'employee',
+                message: 'Select an employee to update:',
+                choices: employees // array of employees
             },
             {
                 type: 'list',
@@ -283,35 +318,35 @@ const setOccupation = async () => {
             }
         ]);
 
-        const updateQuery = `UPDATE personnel SET occupation_id = ? WHERE id = ?`;
-        await db.promise().query(updateQuery, [setVals.occupationId, setVals.staff]);
+        const updateQuery = `UPDATE employee SET occupation_id = ? WHERE id = ?`;
+        await db.promise().query(updateQuery, [setVals.occupationId, setVals.employee]);
 
-        console.log('Staff occupation updated successfully.');
+        console.log(`The employee's occupation has been updated successfully.`);
     } catch (err) {
-        console.error('Error: Failed to update staff occupation', err);
+        console.error(`Error: Failed to update the employee's occupation`, err);
     }
 }
 
-// BONUS: Edits the reporting manager for a staff member
+// BONUS: Sets the reporting manager for a staff member
 const setMgr = async () => {
     try {
-        const [personnel] = await db.promise().query('SELECT id, first_name, last_name FROM personnel');
+        const [employees] = await db.promise().query('SELECT id, first_name, last_name FROM employee');
 
-        const staffList = personnel.map(staff => ({
+        const staffList = employees.map(staff => ({
             name: `${staff.first_name} ${staff.last_name}`,
             value: staff.id
         }));
 
-        const { personnelId } = await inquirer.prompt([
+        const { employeeId } = await inquirer.prompt([
             {
                 type: 'list',
-                name: 'personnelId',
+                name: 'employeeId',
                 message: 'Select an employee to update their manager:',
                 choices: staffList
             }
         ]);
 
-        const [managers] = await db.promise().query('SELECT id, first_name, last_name FROM personnel WHERE id != ?', [personnelId]);
+        const [managers] = await db.promise().query('SELECT id, first_name, last_name FROM employee WHERE id != ?', [employeeId]);
 
         const managerList = managers.map(mgr => ({
             name: `${mgr.first_name} ${mgr.last_name}`,
@@ -329,10 +364,10 @@ const setMgr = async () => {
             }
         ]);
 
-        const updateQuery = 'UPDATE personnel SET manager_id = ? WHERE id = ?';
-        await db.promise().query(updateQuery, [newManagerId, personnelId]);''
+        const updateQuery = 'UPDATE employee SET manager_id = ? WHERE id = ?';
+        await db.promise().query(updateQuery, [newManagerId, employeeId]);''
          
-        console.log('Manager updated successfully');
+        console.log('Manager updated successfully for the selected employee');
     } catch(err) {
         console.error('Error: Failed to update manager for the selected employee', err);
     }
@@ -397,26 +432,26 @@ const removeOccupation = async () => {
 }
 
 // BONUS: Removes an existing staff member
-const removePersonnel = async () => {
+const removeEmployee = async () => {
     try {
-        const [personnel] = await db.promise().query('SELECT id, first_name, last_name FROM personnel');
+        const [employees] = await db.promise().query('SELECT id, first_name, last_name FROM employee');
 
-        const staffList = personnel.map(staff => ({
+        const staffList = employees.map(staff => ({
             name: `${staff.first_name} ${staff.last_name}`,
             value: staff.id
         }));
 
-        const { personnelId } = await inquirer.prompt([
+        const { employeeId } = await inquirer.prompt([
             {
                 type: 'list',
-                name: 'personnelId',
+                name: 'employeeId',
                 message: 'Select an employee to remove:',
                 choices: staffList
             }
         ]);
 
-        const removeQuery = 'DELETE FROM personnel WHERE id = ?';
-        await db.promise().query(removeQuery, [personnelId]);
+        const removeQuery = 'DELETE FROM employee WHERE id = ?';
+        await db.promise().query(removeQuery, [employeeId]);
 
         console.log('Employee removed successfully');
     } catch(err) {
@@ -426,62 +461,65 @@ const removePersonnel = async () => {
 
 // Initalize application
 const main = async () => {
-    userPrompt()
-    .then(input => {
+    let exit = false;
+    while (!exit) {
+        const input = await userPrompt();
         switch (input.actions) {
             case 'Get List of Departments':
-                getDepts();
+                await getDepts();
                 break;
             case 'Get List of Occupations':
-                getOccupations();
+                await getOccupations();
                 break;
             case 'Get List of Personnel':
-                getPersonnel();
+                await getEmployees();
                 break;
-            case 'Get Personnel by Department': //bonus
-                getPersonnelByDept();
+            case 'Get Personnel by Department':
+                await getEmployeesByDept();
                 break;
-            case 'Get Direct Reports by Manager': //bonus
-                getPersonnelbyMgr();
+            case 'Get Direct Reports by Manager':
+                await getEmployeesByMgr();
                 break;
-            case 'Generate Departmental Budget Report': //bonus
-                getBudgetReport();
+            case 'Generate Departmental Budget Report':
+                await getBudgetReport();
                 break;
             case 'Add New Department':
-                addDept();
+                await addDept();
                 break;
             case 'Add New Occupation':
-                addOccupation();
+                await addOccupation();
                 break;
             case 'Add New Staff Personnel':
-                addPersonnel();
+                await addEmployee();
                 break;
-            case 'Edit Staff Department': //extra
-                setDept();
+            case 'Edit Staff Department':
+                await setDept();
                 break;
             case 'Edit Staff Occupation':
-                setOccupation();
+                await setOccupation();
                 break;
-            case 'Edit Reporting Manager': //bonus
-                setMgr();
+            case 'Edit Reporting Manager':
+                await setMgr();
                 break;
-            case 'Remove Department': //bonus
-                removeDept();
+            case 'Remove Department': 
+                await removeDept();
                 break;
-            case 'Remove Occupation': //bonus
-                removeOccupation();
+            case 'Remove Occupation': 
+                await removeOccupation();
                 break;
-            case 'Remove Staff Personnel': //bonus
-                removePersonnel();
+            case 'Remove Staff Personnel':
+                await removeEmployee();
                 break;
             case 'Exit':
-                db.end();
+                console.log('Exiting application.');
+                db.end(); // Close database connection
+                exit = true;
                 break;
             default:
                 console.log('Action not recognized');
                 break;
         }        
-    });
+    }
 }
 
-main();
+main().catch(err => console.error(err));

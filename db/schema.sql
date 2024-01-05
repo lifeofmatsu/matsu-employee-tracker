@@ -13,15 +13,13 @@ CREATE TABLE occupation (
     FOREIGN KEY (department_id) REFERENCES department(id)
 );
 
--- Table of staff in employ (personnel = EMPLOYEES)
-CREATE TABLE personnel (
+-- Table of employees
+CREATE TABLE employee (
     id INT AUTO_INCREMENT PRIMARY KEY,
     first_name VARCHAR(30) NOT NULL,
     last_name VARCHAR(30) NOT NULL,
     occupation_id INT,
     manager_id INT,
-    department_id INT,
     FOREIGN KEY (occupation_id) REFERENCES occupation(id),
-    FOREIGN KEY (manager_id) REFERENCES personnel(id),
-    FOREIGN KEY (department_id) REFERENCES department(id)
+    FOREIGN KEY (manager_id) REFERENCES employee(id)
 );
