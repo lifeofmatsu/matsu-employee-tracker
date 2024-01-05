@@ -20,6 +20,8 @@ CREATE TABLE personnel (
     last_name VARCHAR(30) NOT NULL,
     occupation_id INT,
     manager_id INT,
+    department_id INT,
     FOREIGN KEY (occupation_id) REFERENCES occupation(id),
-    FOREIGN KEY (manager_id) REFERENCES personnel(id)
+    FOREIGN KEY (manager_id) REFERENCES personnel(id),
+    FOREIGN KEY (department_id) REFERENCES department(id)
 );

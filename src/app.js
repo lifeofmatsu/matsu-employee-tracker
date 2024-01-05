@@ -93,7 +93,7 @@ const getPersonnelByDept = async () => {
     }
 }
 
-// BONUS: Gets direct reports of a reporting manager
+// BONUS: Gets the direct reports of a manager
 const getPersonnelbyMgr = async () => {
     try {
         // Query array of managers; user selects manager
@@ -123,7 +123,7 @@ const getPersonnelbyMgr = async () => {
     }
 }
 
-// Generates departmental budget report (i.e. combined payroll salaries by dept)
+// BONUS: Generates departmental budget report (i.e. combined payroll salaries by dept)
 const getBudgetReport = async () => {
     try {
         // Calculate total budget for each dept
@@ -232,9 +232,34 @@ const addPersonnel = async () => {
     }
 }
 
-// Edits department for a staff member
+//EXTRA: Edits department for a staff member
 const setDept = async () => {
+    try {
+        const personnel = await getPersonnel();
+        const departments = await getDepts();
 
+        const setVals = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'staff',
+                message: 'Select staff member to update:',
+                choices: personnel // array of personnel
+            },
+            {
+                type: 'list',
+                name: 'departmentId',
+                message: 'Select new department:',
+                choices: departments // array of departments
+            }
+        ]);
+
+        const updateQuery = `UPDATE personnel SET department_id = ? WHERE id = ?`;
+        await db.promise().query(updateQuery, [setVals.departmentId, setVals.staff]); 
+        
+        console.log('Staff department updated successfully');
+    } catch (err) {
+        console.error('Error: Failed to update staff department', err);
+    }
 }
 
 // Edits occupation for a staff member
@@ -267,24 +292,136 @@ const setOccupation = async () => {
     }
 }
 
-// Edits the reporting manager for a staff member
+// BONUS: Edits the reporting manager for a staff member
 const setMgr = async () => {
+    try {
+        const [personnel] = await db.promise().query('SELECT id, first_name, last_name FROM personnel');
 
+        const staffList = personnel.map(staff => ({
+            name: `${staff.first_name} ${staff.last_name}`,
+            value: staff.id
+        }));
+
+        const { personnelId } = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'personnelId',
+                message: 'Select an employee to update their manager:',
+                choices: staffList
+            }
+        ]);
+
+        const [managers] = await db.promise().query('SELECT id, first_name, last_name FROM personnel WHERE id != ?', [personnelId]);
+
+        const managerList = managers.map(mgr => ({
+            name: `${mgr.first_name} ${mgr.last_name}`,
+            value: mgr.id
+        }));
+
+        managerList.unshift({name: 'No Manager', value: null}); // Case for no manager
+
+        const { newManagerId } = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'newManagerId',
+                message: 'Select the new manager:',
+                choices: managerList
+            }
+        ]);
+
+        const updateQuery = 'UPDATE personnel SET manager_id = ? WHERE id = ?';
+        await db.promise().query(updateQuery, [newManagerId, personnelId]);''
+         
+        console.log('Manager updated successfully');
+    } catch(err) {
+        console.error('Error: Failed to update manager for the selected employee', err);
+    }
 }
 
-// Removes an existing department
+// BONUS: Removes an existing department
 const removeDept = async () => {
+    try {
+        // Fetch all departments
+        const [departments] = await db.promise().query('SELECT id, name FROM department');
 
+        const departmentList = departments.map(dept => ({
+            name: dept.name,
+            value: dept.id
+        }));
+
+        const { departmentId } = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'departmentId',
+                message: 'Select a department to remove:',
+                choices: departmentList
+            }
+        ]);
+
+        // Delete the selected department
+        const deleteQuery = 'DELETE FROM department WHERE id = ?';
+        await db.promise().query(deleteQuery, [departmentId]);
+
+        console.log('Department removed successfully.');
+    } catch (err) {
+        console.error('Error: Failed to remove the selected department', err);
+    }
 }
 
-// Removes an existing occupation
+// BONUS: Removes an existing occupation
 const removeOccupation = async () => {
-    
+    try {
+        const [occupations] = await db.promise().query('SELECT id, title FROM occupation');
+
+        const occupationList = occupations.map(role => ({
+            name: role.title,
+            value: role.id
+        }));
+
+        const { occupationId } = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'occupationId',
+                message: 'Select an occupation to remove:',
+                choices: occupationList
+            }
+        ]);
+
+        const removeQuery = 'DELETE FROM occupation WHERE id = ?';
+        await db.promise().query(removeQuery, [occupationId]);
+
+        console.log('Occupation removed successfully');
+    } catch (err) {
+        console.error('Error: Failed to remove the selected occupation', err);
+    }
 }
 
-// Removes an existing staff member
+// BONUS: Removes an existing staff member
 const removePersonnel = async () => {
-    
+    try {
+        const [personnel] = await db.promise().query('SELECT id, first_name, last_name FROM personnel');
+
+        const staffList = personnel.map(staff => ({
+            name: `${staff.first_name} ${staff.last_name}`,
+            value: staff.id
+        }));
+
+        const { personnelId } = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'personnelId',
+                message: 'Select an employee to remove:',
+                choices: staffList
+            }
+        ]);
+
+        const removeQuery = 'DELETE FROM personnel WHERE id = ?';
+        await db.promise().query(removeQuery, [personnelId]);
+
+        console.log('Employee removed successfully');
+    } catch(err) {
+        console.error('Error: Failed to remove the selected staff member', err);
+    }
 }
 
 // Initalize application
