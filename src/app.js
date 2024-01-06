@@ -18,7 +18,6 @@ const userPrompt = () => {
                 'Add a New Department',
                 'Add a New Occupation',
                 'Add a New Employee',
-                `Reassign an Employee's Department`, // extra
                 `Reassign an Employee's Occupation`,
                 `Reassign an Employee's Manager`, // bonus
                 'Remove an Existing Department', // bonus
@@ -311,48 +310,6 @@ const addEmployee = async () => {
     }
 }
 
-// (EXTRA) Modifies an employee's assigned deparment
-const setDepartment = async () => {
-    try {
-        const [employees] = await db.promise().query('SELECT id, first_name, last_name FROM employee');
-        const [departments] = await db.promise().query('SELECT id, name FROM department');
-
-        const employeeList = employees.map(emp => ({
-            name: `${emp.first_name} ${emp.last_name}`,
-            value: emp.id
-        }));
-        const departmentList = departments.map(dept => ({
-            name: dept.name,
-            value: dept.id
-        }));
-
-        const userVals = await inquirer.prompt([
-            {
-                type: 'list',
-                name: 'employeeId',
-                message: 'Select the reassigned employee:',
-                choices: employeeList
-            },
-            {
-                type: 'list',
-                name: 'departmentId',
-                message: `Select the employee's new department:`,
-                choices: departmentList
-            }
-        ]);
-
-        const updateQuery = `UPDATE employee SET department_id = ? WHERE id = ?`;
-        await db.promise().query(updateQuery, [userVals.departmentId, userVals.employeeId]); 
-
-        const selectedEmp = employeeList.find(emp => emp.value === userVals.employeeId).name;
-        const selectedDept = departmentList.find(dept => dept.value === userVals.departmentId).name;
-        
-        console.log(`Employee [${selectedEmp}] has been reassigned to the [${selectedDept}] department.`);
-    } catch (err) {
-        console.error(`Error: Failed to update the employee's department`, err);
-    }
-}
-
 // Modifies an employee's occupation
 const setOccupation = async () => {
     try {
@@ -553,9 +510,6 @@ const main = async () => {
                 break;
             case 'Add a New Employee':
                 await addEmployee();
-                break;
-            case `Reassign an Employee's Department`:
-                await setDepartment();
                 break;
             case `Reassign an Employee's Occupation`:
                 await setOccupation();
