@@ -1,11 +1,11 @@
 -- Table of departments
-CREATE TABLE department (
+CREATE TABLE IF NOT EXISTS department (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(30) NOT NULL
 );
 
 -- Table of staff titles (occupation = ROLE)
-CREATE TABLE occupation (
+CREATE TABLE IF NOT EXISTS occupation (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(30) NOT NULL,
     salary DECIMAL NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE occupation (
 );
 
 -- Table of employees
-CREATE TABLE employee (
+CREATE TABLE IF NOT EXISTS employee (
     id INT AUTO_INCREMENT PRIMARY KEY,
     first_name VARCHAR(30) NOT NULL,
     last_name VARCHAR(30) NOT NULL,
