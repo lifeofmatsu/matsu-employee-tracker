@@ -145,10 +145,7 @@ const getBudgetReport = async () => {
 		console.table(budgets);
 		console.log('\n');
 	} catch (err) {
-		console.error(
-			'Error: Failed to generate departmental budget report:',
-			err
-		);
+		console.error('Error: Failed to generate departmental budget report:', err);
 	}
 };
 

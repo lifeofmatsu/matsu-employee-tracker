@@ -1,25 +1,23 @@
 const db = require('./src/db');
 const { userPrompt } = require('./src/prompts');
-
 const {
-	getDepartments,
-	addDepartment,
-	removeDepartment
-} = require('./src/operations/departments');
-
+    getDepartments,
+    addDepartment,
+    removeDepartment,
+    getBudgetReport } = require('./src/operations/departments');
 const {
-	getOccupations,
-	addOccupation,
-	removeOccupation
-} = require('./src/operations/occupations');
-
+    getOccupations,
+    addOccupation,
+    setOccupation,
+    removeOccupation } = require('./src/operations/occupations');
 const {
-	getEmployees,
-	addEmployee,
-	removeEmployee,
-	setOccupation,
-	setManager
-} = require('./src/operations/employees');
+    getEmployees,
+    addEmployee,
+    removeEmployee,
+    getEmployeesByDept,
+    getEmployeesbyMgr,
+    setManager } = require('./src/operations/employees');
+
 
 // Initalize application
 const main = async () => {

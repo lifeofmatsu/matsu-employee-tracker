@@ -228,10 +228,7 @@ const getEmployeesbyMgr = async () => {
 		console.table(directReports);
 		console.log('\n');
 	} catch (err) {
-		console.error(
-			'Error: Failed to fetch the direct reports of user-selected manager:',
-			err
-		);
+		console.error('Error: Failed to fetch the direct reports of user-selected manager:', err);
 	}
 };
 
@@ -294,10 +291,7 @@ const setManager = async () => {
 			`\n[${selectedEmp}] is employed under manager [${selectedMgr}].\n`
 		);
 	} catch (err) {
-		console.error(
-			'Error: Failed to update manager for the selected employee',
-			err
-		);
+		console.error('Error: Failed to update manager for the selected employee', err);
 	}
 };
 
