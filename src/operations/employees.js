@@ -1,5 +1,5 @@
 const db = require('../db');
-const { userPrompt } = require('../prompts');
+
 
 // Fetches all the currently employed staff members
 const getEmployees = async () => {

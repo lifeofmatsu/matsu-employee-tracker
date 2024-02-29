@@ -1,5 +1,5 @@
 const db = require('../db');
-const { userPrompt } = require('../prompts');
+
 
 // Fetches a list of all departments
 const getDepartments = async () => {
