@@ -41,11 +41,9 @@ const addEmployee = async () => {
         const [occupations] = await db.promise().query('SELECT id, title FROM occupation');
         const occupationList = occupations.map(occ => ({ name: occ.title, value: occ.id }));
 
-        const [managers] = await db.promise().query(
-            `SELECT DISTINCT manager.id, manager.first_name, manager.last_name
-             FROM employee
-             JOIN employee AS manager ON employee.manager_id = manager.id`);
-        const managerList = managers.map(mgr => ({ name: `${mgr.first_name} ${mgr.last_name}`, value: mgr.id }));
+        const [employees] = await db.promise().query('SELECT id, first_name, last_name FROM employee');
+        const managerList = employees.map(emp => ({ name: `${emp.first_name} ${emp.last_name}`, value: emp.id }));
+        // const managerList = employeeList.filter(manager => manager.value !== employeeId);
         managerList.unshift({ name: 'No Manager', value: null }); // Option for no manager
 
         const userVals = await inquirer.prompt([
@@ -73,7 +71,7 @@ const addEmployee = async () => {
             }
         ]);
 
-        // Check for existing employee with the same name
+        // Check for existing employee(s) with the same name
         const [existingEmployee] = await db.promise().query(
             `SELECT * FROM employee WHERE first_name = ? AND last_name = ?`, 
             [userVals.firstName, userVals.lastName]
@@ -235,10 +233,7 @@ Updates an employee's manager
 const setManager = async () => {
     try {
         const [employees] = await db.promise().query('SELECT id, first_name, last_name FROM employee');
-        const employeeList = employees.map(emp => ({
-            name: `${emp.first_name} ${emp.last_name}`,
-            value: emp.id
-        }));
+        const employeeList = employees.map(emp => ({ name: `${emp.first_name} ${emp.last_name}`, value: emp.id }));
 
         // First prompt: Select an employee
         const { employeeId } = await inquirer.prompt([
