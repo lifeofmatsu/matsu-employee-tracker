@@ -46,6 +46,7 @@ const addEmployee = async () => {
              FROM employee
              JOIN employee AS manager ON employee.manager_id = manager.id`);
         const managerList = managers.map(mgr => ({ name: `${mgr.first_name} ${mgr.last_name}`, value: mgr.id }));
+        managerList.unshift({ name: 'No Manager', value: null }); // Option for no manager
 
         const userVals = await inquirer.prompt([
             {
@@ -166,7 +167,7 @@ const getEmployeesByDept = async () => {
 		]);
 
 		const [employees] = await db.promise().query(
-			`SELECT employee.id, employee.first_name, employee.last_name, occupation.title, department.name AS department
+			`SELECT employee.id, employee.first_name, employee.last_name, occupation.title AS department
              FROM employee 
              JOIN occupation ON employee.occupation_id = occupation.id 
              JOIN department ON occupation.department_id = department.id 
@@ -232,56 +233,49 @@ const getEmployeesbyMgr = async () => {
 Updates an employee's manager
 */
 const setManager = async () => {
-	try {
-		const [employees] = await db
-			.promise()
-			.query('SELECT id, first_name, last_name FROM employee');
-		const employeeList = employees.map((emp) => ({
-			name: `${emp.first_name} ${emp.last_name}`,
-			value: emp.id
-		}));
+    try {
+        const [employees] = await db.promise().query('SELECT id, first_name, last_name FROM employee');
+        const employeeList = employees.map(emp => ({
+            name: `${emp.first_name} ${emp.last_name}`,
+            value: emp.id
+        }));
 
-		const [managers] = await db.promise().query(
-			`SELECT DISTINCT manager.id, manager.first_name, manager.last_name 
-             FROM employee 
-             JOIN employee AS manager ON employee.manager_id = manager.id`
-		);
-		const managerList = managers.map((mgr) => ({
-			name: `${mgr.first_name} ${mgr.last_name}`,
-			value: mgr.id
-		}));
-		managerList.unshift({ name: 'No Manager', value: null }); // in case of no manager
+        // First prompt: Select an employee
+        const { employeeId } = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'employeeId',
+                message: 'Select an employee:',
+                choices: employeeList
+            }
+        ]);
 
-		const userVals = await inquirer.prompt([
-			{
-				type: 'list',
-				name: 'employeeId',
-				message: 'Select an employee:',
-				choices: employeeList
-			},
-			{
-				type: 'list',
-				name: 'managerId',
-				message: 'Select new manager:',
-				choices: managerList
-			}
-		]);
+        // Generate manager list, excluding the selected employee
+        const managerList = employeeList.filter(manager => manager.value !== employeeId);
+        managerList.unshift({ name: 'No Manager', value: null }); // Option for no manager
 
-		await db
-			.promise()
-			.query('UPDATE employee SET manager_id = ? WHERE id = ?', [
-				userVals.managerId,
-				userVals.employeeId
-			]); // update new manager name
+        // Second prompt: Select new manager, now that employeeId is defined
+        const { managerId } = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'managerId',
+                message: 'Select new manager:',
+                choices: managerList
+            }
+        ]);
 
-		// User selections for employee and manager
-		const userSelectEmployee = employeeList.find((emp) => emp.value === userVals.employeeId).name;
-		const userSelectMgr = managerList.find((mgr) => mgr.value === userVals.managerId).name; // User manager selection
+        await db.promise().query('UPDATE employee SET manager_id = ? WHERE id = ?', [
+            managerId,
+            employeeId
+        ]);
 
-		console.log(`\n[${userSelectEmployee}] is employed under manager [${userSelectMgr}].\n`);
-	} catch (err) {
-		console.error('Error: Failed to update manager for the selected employee', err);
-	}
+        const selectedEmployee = employeeList.find(emp => emp.value === employeeId).name;
+        const selectedManager = managerId === null ? 'No Manager' : managerList.find(mgr => mgr.value === managerId).name;
+
+        console.log(`\nEmployee [${selectedEmployee}]'s supervising manager has been assigned to [${selectedManager}].\n`);
+    } catch (err) {
+        console.error('Error: Failed to update manager for the selected employee', err);
+    }
 };
 
 module.exports = {

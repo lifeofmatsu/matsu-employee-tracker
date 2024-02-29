@@ -152,24 +152,23 @@ const removeOccupation = async () => {
         ]);
 
         // Fetch employees' names and the occupation title for the occupation to be removed
-        const employeesToRemove = await db.promise().query(
-            `SELECT e.first_name, e.last_name, o.title AS prior_occupation
+        const [employeesToRemove] = await db.promise().query(
+            `SELECT e.id, e.first_name, e.last_name, o.title AS prior_occupation
              FROM employee e
              JOIN occupation o ON e.occupation_id = o.id
              WHERE o.id = ?`, [occupationId]);
 
-        // Assuming you have columns for first_name, last_name, prior_occupation, and laid_off_date
-        if (employeesToRemove[0].length > 0) {
-            employeesToRemove[0].forEach(async (employee) => {
-                const { first_name, last_name, prior_occupation } = employee;
-                const laidOffDate = new Date().toISOString().slice(0, 10); // Using current date as laid off date
+        // Move each employee to 'former_employees' before deleting the occupation
+        await Promise.all(employeesToRemove.map(async (employee) => {
+            const laidOffDate = new Date().toISOString().slice(0, 10); // Using current date as laid off date
+            await db.promise().query(
+                `INSERT INTO former_employees (first_name, last_name, prior_occupation, laid_off_date)
+                 VALUES (?, ?, ?, ?)`, 
+                [employee.first_name, employee.last_name, employee.prior_occupation, laidOffDate]);
 
-                await db.promise().query(
-                    `INSERT INTO former_employees (first_name, last_name, prior_occupation, laid_off_date)
-                     VALUES (?, ?, ?, ?)`, 
-                    [first_name, last_name, prior_occupation, laidOffDate]);
-            });
-        }
+            // Delete employee after moving to 'former_employees'
+            await db.promise().query('DELETE FROM employee WHERE id = ?', [employee.id]);
+        }));
 
         // Now, remove the occupation from the occupation table
         await db.promise().query('DELETE FROM occupation WHERE id = ?', [occupationId]);
@@ -180,6 +179,7 @@ const removeOccupation = async () => {
         console.error('Error: Failed to remove the selected occupation', err);
     }
 };
+
 
 module.exports = {
     getOccupations,
