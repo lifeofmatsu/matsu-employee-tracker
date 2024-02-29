@@ -2,9 +2,9 @@
   "name": "matsu-employee-tracker",
   "version": "1.0.0",
   "description": "This assignment is to build a command-line application from scratch to manage a company's employee database, using Node.js, Inquirer, and MySQL.",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "start": "node src/app.js",
+    "start": "node app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
