@@ -1,3 +1,4 @@
+const inquirer = require('inquirer');
 const db = require('../db');
 
 
@@ -10,8 +11,21 @@ const getOccupations = async () => {
              JOIN department ON occupation.department_id = department.id`
 		);
 
-		console.log('\n\nCatalog of Occupations for ALL Departments:\n');
-		console.table(occupations);
+        // Formats `salary` values as currency without decimal places
+        const formattedOccupations = occupations.map(occupation => {
+            return {
+                ...occupation,
+                salary: new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0, // No decimal places
+                    maximumFractionDigits: 0, // No decimal places
+                }).format(occupation.salary)
+            };
+        });
+
+		console.log('\n\nTable 2. Catalog of Occupations for ALL Departments:\n');
+		console.table(formattedOccupations);
 		console.log('\n');
 	} catch (err) {
 		console.error('Error: Failed to fetch occupations', err);
@@ -60,7 +74,9 @@ const addOccupation = async () => {
              [userVals.title, userVals.salary, userVals.departmentId]
         );
 
-        console.log(`\nThe occupation [${userVals.title}] with salary [${userVals.salary}] is now listed under department ID [${userVals.departmentId}].\n`);
+        const selectedDept = departmentList.find((dept) => dept.value === userVals.departmentId).name;
+
+        console.log(`\nThe occupation [${userVals.title}] with salary [\$${userVals.salary}] has been added to the [${selectedDept}] department.\n`);
     } catch (err) {
         console.error('Error: Failed to add occupation', err);
     }
@@ -108,16 +124,10 @@ const setOccupation = async () => {
 			]);
 
 		// User 'employee' & 'occupation' selections
-		const selectedEmp = employeeList.find(
-			(emp) => emp.value === userVals.employeeId
-		).name;
-		const selectedOcc = occupationList.find(
-			(occ) => occ.value === userVals.occupationId
-		).name;
+		const selectedEmp = employeeList.find((emp) => emp.value === userVals.employeeId).name;
+		const selectedOcc = occupationList.find((occ) => occ.value === userVals.occupationId).name;
 
-		console.log(
-			`\n[${selectedEmp}]'s occupation has been changed to [${selectedOcc}].\n`
-		);
+		console.log(`\n[${selectedEmp}]'s occupation has been changed to [${selectedOcc}].\n`);
 	} catch (err) {
 		console.error(`Error: Failed to update the employee's occupation`, err);
 	}
@@ -129,52 +139,47 @@ Removes an occupation from the database
 Moves employees of that occupation to the `former_employees` table
 */
 const removeOccupation = async () => {
-	try {
-		const [occupations] = await db
-			.promise()
-			.query('SELECT id, title FROM occupation');
-		const occupationList = occupations.map((occ) => ({
-			name: occ.title,
-			value: occ.id
-		}));
+    try {
+        const [occupations] = await db.promise().query('SELECT id, title FROM occupation');
+        const occupationList = occupations.map(occ => ({ name: occ.title, value: occ.id }));
 
-		const { occupationId } = await inquirer.prompt([
-			{
-				type: 'list',
-				name: 'occupationId',
-				message: 'Select an occupation to remove:',
-				choices: occupationList
-			}
-		]);
+        const { occupationId } = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'occupationId',
+                message: 'Select an occupation to remove:',
+                choices: occupationList
+            }
+        ]);
 
-		// Move affected employees to the former_employees table
-		await db.promise().query(
-			`INSERT INTO former_employees (first_name, last_name, ...)
-             SELECT first_name, last_name, ... 
-             FROM employee 
-             WHERE occupation_id = ?`,
-			[occupationId]
-		);
+        // Fetch employees' names and the occupation title for the occupation to be removed
+        const employeesToRemove = await db.promise().query(
+            `SELECT e.first_name, e.last_name, o.title AS prior_occupation
+             FROM employee e
+             JOIN occupation o ON e.occupation_id = o.id
+             WHERE o.id = ?`, [occupationId]);
 
-		await db
-			.promise()
-			.query('DELETE FROM employee WHERE occupation_id = ?', [
-				occupationId
-			]);
-		await db
-			.promise()
-			.query('DELETE FROM occupation WHERE id = ?', [occupationId]);
+        // Assuming you have columns for first_name, last_name, prior_occupation, and laid_off_date
+        if (employeesToRemove[0].length > 0) {
+            employeesToRemove[0].forEach(async (employee) => {
+                const { first_name, last_name, prior_occupation } = employee;
+                const laidOffDate = new Date().toISOString().slice(0, 10); // Using current date as laid off date
 
-		const userSelection = occupationList.find(
-			(occ) => occ.value === occupationId
-		).name; // User 'occupation' selection
+                await db.promise().query(
+                    `INSERT INTO former_employees (first_name, last_name, prior_occupation, laid_off_date)
+                     VALUES (?, ?, ?, ?)`, 
+                    [first_name, last_name, prior_occupation, laidOffDate]);
+            });
+        }
 
-		console.log(
-			`\nThe [${userSelection}] occupation has been removed.\n All [${userSelection}] personnel have been dismissed.\n`
-		);
-	} catch (err) {
-		console.error('Error: Failed to remove the selected occupation', err);
-	}
+        // Now, remove the occupation from the occupation table
+        await db.promise().query('DELETE FROM occupation WHERE id = ?', [occupationId]);
+
+        const userSelection = occupationList.find(occ => occ.value === occupationId).name;
+        console.log(`\nThe role [${userSelection}] has been removed as an occupation.\n`);
+    } catch(err) {
+        console.error('Error: Failed to remove the selected occupation', err);
+    }
 };
 
 module.exports = {

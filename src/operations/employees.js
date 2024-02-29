@@ -1,3 +1,4 @@
+const inquirer = require('inquirer');
 const db = require('../db');
 
 
@@ -13,8 +14,21 @@ const getEmployees = async () => {
              LEFT JOIN employee AS manager ON employee.manager_id = manager.id`
 		);
 
-		console.log('\n\nCatalog of Employees for ALL Departments:\n');
-		console.table(employees);
+        // Formats `salary` values as currency without decimal places
+        const formattedEmployees = employees.map(employee => {
+            return {
+                ...employee,
+                salary: new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0, // No decimal places
+                    maximumFractionDigits: 0, // No decimal places
+                }).format(employee.salary)
+            };
+        });
+
+		console.log('\n\nTable 3a. Catalog of Employees for ALL Departments:\n');
+		console.table(formattedEmployees);
 		console.log('\n');
 	} catch (err) {
 		console.error('Error: Failed to fetch employee data', err);
@@ -88,53 +102,44 @@ Updates `manager_id` to NULL for any direct reports of the employee
 Moves the employee to the `former_employees` table
 */
 const removeEmployee = async () => {
-	try {
-		const [employees] = await db
-			.promise()
-			.query('SELECT id, first_name, last_name FROM employee');
-		const employeeList = employees.map((emp) => ({
-			name: `${emp.first_name} ${emp.last_name}`,
-			value: emp.id
-		}));
+    try {
+        const [employees] = await db.promise().query('SELECT id, first_name, last_name FROM employee');
+        const employeeList = employees.map(emp => ({ name: `${emp.first_name} ${emp.last_name}`, value: emp.id }));
 
-		const { employeeId } = await inquirer.prompt([
-			{
-				type: 'list',
-				name: 'employeeId',
-				message: 'Select an employee to remove:',
-				choices: employeeList
-			}
-		]);
+        const { employeeId } = await inquirer.prompt([
+            {
+                type: 'list',
+                name: 'employeeId',
+                message: 'Select an employee to remove:',
+                choices: employeeList
+            }
+        ]);
 
-		// Update direct reports' manager_id to NULL
-		await db
-			.promise()
-			.query(
-				'UPDATE employee SET manager_id = NULL WHERE manager_id = ?',
-				[employeeId]
-			);
+        // Assuming 'prior_occupation' needs the occupation title, which requires a JOIN to fetch
+        const employeeToRemove = await db.promise().query(
+            `SELECT first_name, last_name, o.title AS prior_occupation
+             FROM employee e
+             JOIN occupation o ON e.occupation_id = o.id
+             WHERE e.id = ?`, [employeeId]);
 
-		// Move the employee to the former_employees table
-		await db.promise().query(
-			`INSERT INTO former_employees (first_name, last_name, ...)
-             SELECT first_name, last_name, ... 
-             FROM employee 
-             WHERE id = ?`,
-			[employeeId]
-		);
+        if (employeeToRemove[0].length > 0) {
+            const { first_name, last_name, prior_occupation } = employeeToRemove[0][0];
+            const laidOffDate = new Date().toISOString().slice(0, 10); // Using current date as laid off date
 
-		await db
-			.promise()
-			.query('DELETE FROM employee WHERE id = ?', [employeeId]);
+            await db.promise().query(
+                `INSERT INTO former_employees (first_name, last_name, prior_occupation, laid_off_date)
+                 VALUES (?, ?, ?, ?)`, 
+                [first_name, last_name, prior_occupation, laidOffDate]);
+        }
 
-		const userSelection = employeeList.find(
-			(emp) => emp.value === employeeId
-		).name; // User 'employee' selection
-
-		console.log(`\nEmployee [${userSelection}] has been removed.\n`);
-	} catch (err) {
-		console.error('Error: Failed to remove the selected staff member', err);
-	}
+        // Now remove the employee from the employee table
+        await db.promise().query('DELETE FROM employee WHERE id = ?', [employeeId]);
+       
+        const userSelection = employeeList.find(emp => emp.value === employeeId).name;
+        console.log(`\nEmployee [${userSelection}] has been removed.\n`);
+    } catch(err) {
+        console.error('Error: Failed to remove the selected staff member', err);
+    }
 };
 
 /*
@@ -160,6 +165,7 @@ const getEmployeesByDept = async () => {
 			}
 		]);
 
+        
 		const [employees] = await db.promise().query(
 			`SELECT employee.id, employee.first_name, employee.last_name, occupation.title, department.name AS department
              FROM employee 
@@ -169,13 +175,8 @@ const getEmployeesByDept = async () => {
 			[departmentId]
 		);
 
-		const userSelection = departmentList.find(
-			(dept) => dept.value === departmentId
-		).name; // User department selection
-
-		console.log(
-			`\n\nTable of Employees in the [${userSelection}] Department:\n`
-		);
+		const userSelection = departmentList.find((dept) => dept.value === departmentId).name; // User department selection
+		console.log(`\n\nTable 3b. Employees in the [${userSelection}] department:\n`);
 		console.table(employees);
 		console.log('\n');
 	} catch (err) {
@@ -218,13 +219,9 @@ const getEmployeesbyMgr = async () => {
 			[managerId]
 		);
 
-		const userSelection = managerList.find(
-			(mgr) => mgr.value === managerId
-		).name; // User manager selection
+		const userSelection = managerList.find((mgr) => mgr.value === managerId).name; // User manager selection
 
-		console.log(
-			`\n\nTable of Employees, Direct Reports to Manager [${userSelection}]:\n`
-		);
+		console.log(`\n\nTable 3c. Employees Reporting Directly to Manager [${userSelection}]:\n`);
 		console.table(directReports);
 		console.log('\n');
 	} catch (err) {
@@ -280,16 +277,9 @@ const setManager = async () => {
 			]); // update new manager name
 
 		// User 'employee' & 'manager' selections
-		const selectedEmp = employeeList.find(
-			(emp) => emp.value === userVals.employeeId
-		).name;
-		const selectedMgr = managerList.find(
-			(mgr) => mgr.value === userVals.managerId
-		).name;
-
-		console.log(
-			`\n[${selectedEmp}] is employed under manager [${selectedMgr}].\n`
-		);
+		const selectedEmp = employeeList.find((emp) => emp.value === userVals.employeeId).name;
+		const selectedMgr = managerList.find((mgr) => mgr.value === userVals.managerId).name;
+		console.log(`\n[${selectedEmp}] is employed under manager [${selectedMgr}].\n`);
 	} catch (err) {
 		console.error('Error: Failed to update manager for the selected employee', err);
 	}
