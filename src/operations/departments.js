@@ -9,7 +9,7 @@ const getDepartments = async () => {
 			.promise()
 			.query(`SELECT * FROM department`);
 
-		console.log('\n\nTable 1a. Catalog of Departments at OOO Software Company:\n');
+		console.log('\n\nTable 1a. Catalog of Departments at XXX Software Company:\n');
 		console.table(departments);
 		console.log('\n');
 	} catch (err) {
