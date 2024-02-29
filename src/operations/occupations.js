@@ -74,9 +74,8 @@ const addOccupation = async () => {
              [userVals.title, userVals.salary, userVals.departmentId]
         );
 
-        const selectedDept = departmentList.find((dept) => dept.value === userVals.departmentId).name;
-
-        console.log(`\nThe occupation [${userVals.title}] with salary [\$${userVals.salary}] has been added to the [${selectedDept}] department.\n`);
+        const userSelectDept = departmentList.find((dept) => dept.value === userVals.departmentId).name;
+        console.log(`\nThe occupation [${userVals.title}] with salary [\$${userVals.salary}] has been added to the [${userSelectDept}] department.\n`);
     } catch (err) {
         console.error('Error: Failed to add occupation', err);
     }
@@ -124,10 +123,10 @@ const setOccupation = async () => {
 			]);
 
 		// User 'employee' & 'occupation' selections
-		const selectedEmp = employeeList.find((emp) => emp.value === userVals.employeeId).name;
-		const selectedOcc = occupationList.find((occ) => occ.value === userVals.occupationId).name;
+		const userSelectEmployee = employeeList.find((emp) => emp.value === userVals.employeeId).name;
+		const userSelectOccupation = occupationList.find((occ) => occ.value === userVals.occupationId).name;
 
-		console.log(`\n[${selectedEmp}]'s occupation has been changed to [${selectedOcc}].\n`);
+		console.log(`\n[${userSelectEmployee}]'s occupation has been changed to [${userSelectOccupation}].\n`);
 	} catch (err) {
 		console.error(`Error: Failed to update the employee's occupation`, err);
 	}
@@ -175,8 +174,8 @@ const removeOccupation = async () => {
         // Now, remove the occupation from the occupation table
         await db.promise().query('DELETE FROM occupation WHERE id = ?', [occupationId]);
 
-        const userSelection = occupationList.find(occ => occ.value === occupationId).name;
-        console.log(`\nThe role [${userSelection}] has been removed as an occupation.\n`);
+        const userSelectOccupation = occupationList.find(occ => occ.value === occupationId).name;
+        console.log(`\nThe role [${userSelectOccupation}] has been removed as an occupation.\n`);
     } catch(err) {
         console.error('Error: Failed to remove the selected occupation', err);
     }
